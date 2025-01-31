@@ -1,5 +1,4 @@
 from individual import Individual
-from typing import List
 
 
 class ObjectiveValue:
