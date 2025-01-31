@@ -55,5 +55,5 @@ class ObjectiveValueConstructor:
         self.f = f
         self.m = m
     def create_objective_value(self, x:Individual)->ObjectiveValue:
-        return ObjectiveValue(self.f, self.m)
+        return ObjectiveValue(self.f, self.m, x)
 
