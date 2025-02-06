@@ -38,10 +38,11 @@ def binary_list_to_int(binary_list: List[int]) -> int:
     return [result, result]
 
 f = ObjectiveValueConstructor(binary_list_to_int, 2)
-x_list = [Individual([1, 1, 0,  0, 1, 0, 0, 0], 8), Individual([1, 1, 0,  0, 1, 0, 0, 0], 8), Individual([1, 0, 0,  0, 1, 0, 0, 0], 8), Individual([1, 1, 0,  1, 1, 0, 0, 1], 8), Individual([0, 1, 1,  0, 0, 0, 0, 1], 8)]
-population = [f(x) for x in x_list]
-ordered = NSGA_II.non_dominated_sorting(population)
+population = [Individual([1, 1, 0,  0, 1, 0, 0, 0], 8), Individual([1, 0, 0,  0, 1, 0, 0, 0], 8), Individual([1, 1, 0,  1, 1, 0, 0, 1], 8), Individual([0, 1, 1,  0, 0, 0, 0, 1], 8)]
+nsga = NSGA_II(f)
+ordered = nsga.non_dominated_sorting(population)
 for rank in ordered:
     print([obj for obj in rank])
 
 
+print(nsga.crowding_distance(population))

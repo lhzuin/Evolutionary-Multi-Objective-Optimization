@@ -1,19 +1,22 @@
-from typing import List
-from objective_value import ObjectiveValue
+from typing import Dict, List
+from objective_value import ObjectiveValue, ObjectiveValueConstructor
+from individual import Individual
+import sys
 
 
 class NSGA_II:
-    def __init__(self):
-        pass
-    @staticmethod
-    def non_dominated_sorting(population: List[ObjectiveValue]) -> List[List[ObjectiveValue]]:
+    def __init__(self, f: ObjectiveValueConstructor):
+        self.f = f
+    
+    def non_dominated_sorting(self, population: List[Individual]) -> List[List[Individual]]:
         n = len(population)
         dominance_matrix = [[0] * n for _ in range(n)]
+        population_obj = [self.f(x) for x in population]
         for i in range(n):
             for j in range(n):
                 if i != j:
-                    dominance_matrix[i][j] = int(ObjectiveValue.strictly_dominates(population[i], population[j]))
-                    # Column j will store the elements that strictly dominate the jth element from the population
+                    dominance_matrix[i][j] = int(ObjectiveValue.strictly_dominates(population_obj[i], population_obj[j]))
+                    # Column j will store the elements that strictly dominate the jth element from the population_obj
 
         remaining_pop = {i: sum(row[i] for row in dominance_matrix) for i in range(n)}
         sorted_ranks = []
@@ -33,9 +36,20 @@ class NSGA_II:
         return sorted_ranks
 
 
+    def crowding_distance(self, population: List[Individual]) -> Dict[Individual, float]:
+        def sort_key(individual, k):
+            obj_val = self.f(individual)
+            return obj_val[k]
+        inf = float(10**10)
+        n = len(population)
+        distance_dict = {individual: 0 for individual in population}
+        for k in range(self.f.m):
+            sorted_pop = sorted(population, key=lambda ind: sort_key(ind, k))
+            distances = [0]*n
+            distances[0] = distances[n-1]  = inf 
+            distance_dict[sorted_pop[0]] = distance_dict[sorted_pop[n-1]] = inf
+            for i in range(1, n-1):
+                distance_dict[sorted_pop[i]] += (self.f(sorted_pop[i+1])[k] - self.f(sorted_pop[i-1])[k])/(self.f(sorted_pop[n-1])[k] - self.f(sorted_pop[0])[k])
 
-                
+        return distance_dict
 
-
-    def crowding_distance(self):
-        pass

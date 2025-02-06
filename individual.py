@@ -35,5 +35,24 @@ class Individual:
     
     def __str__(self):
         # Return a readable string describing this instance
-        # You can customize it however you want
         return f"Individual(vec={self.x}, n={self.n})"
+    
+    def __repr__(self):
+        return self.__str__()
+    
+    def __eq__(self, other):
+        if not isinstance(other, Individual):
+            return NotImplemented
+        # Two individuals are equal if they have the same length and same bits.
+        return self.n == other.n and self.x == other.x
+
+    def __hash__(self):
+        """
+        Convert the boolean list to an integer.
+        For example, [True, False, True] becomes the integer 5 (binary 101).
+        """
+        value = 0
+        for bit in self.x:
+            # Shift the current value left by one and add the bit (converted to int: True -> 1, False -> 0)
+            value = (value << 1) | int(bit)
+        return hash(value)

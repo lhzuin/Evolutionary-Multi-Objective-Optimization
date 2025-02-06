@@ -36,6 +36,9 @@ class ObjectiveValue:
     def __repr__(self):
         # This ensures that printing a list of ObjectiveValue objects uses the __str__ representation.
         return self.__str__()
+    def __getitem__(self, key):
+        # Allow indexing by simply deferring to fk
+        return self.fk(key)
 
     @staticmethod
     def strictly_dominates(u: "ObjectiveValue", v: "ObjectiveValue"):
