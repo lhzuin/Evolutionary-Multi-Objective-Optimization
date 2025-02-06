@@ -28,9 +28,20 @@ class ObjectiveValue:
 
     def __len__(self):
         return self.m
+    
+    def __str__(self):
+        # Create a nicely formatted string including the list of floats
+        return f"ObjectiveValue(value={self.value()})"
+    
+    def __repr__(self):
+        # This ensures that printing a list of ObjectiveValue objects uses the __str__ representation.
+        return self.__str__()
 
     @staticmethod
-    def strongly_dominates(u: "ObjectiveValue", v: "ObjectiveValue"):
+    def strictly_dominates(u: "ObjectiveValue", v: "ObjectiveValue"):
+        """
+        Returns True if u strictly dominates v
+        """
         if u.m != v.m:
             raise ValueError("Fizemos merda em strongly")
         
@@ -55,4 +66,6 @@ class ObjectiveValueConstructor:
         self.m = m
     def create_objective_value(self, x:Individual)->ObjectiveValue:
         return ObjectiveValue(self.f, self.m, x)
+    def __call__(self, x: Individual) -> ObjectiveValue:
+        return self.create_objective_value(x)
 
