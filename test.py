@@ -1,14 +1,14 @@
 from individual import Individual
-from objective_value import ObjectiveValueConstructor
+from objective_value import ObjectiveValueConstructor, ObjectiveValueConstructorFromFunction
 from nsga_ii import NSGA_II
-from mlotz import LOTZ, mLOTZ
+from mlotz import LOTZ, mLOTZ, mLOTZConstructor
 from typing import List
 x = Individual([1, 1, 0,  0, 1, 0, 0, 0], 8)
 lotz = LOTZ(x)
 print(lotz[1])
 print(lotz[2])
 
-mlotz = mLOTZ(4, x)
+mlotz = mLOTZ(4, len(x), x)
 print(mlotz[1])
 print(mlotz[2])
 print(mlotz[3])
@@ -37,7 +37,7 @@ def binary_list_to_int(binary_list: List[int]) -> int:
     result = float(result)
     return [result, result]
 
-f = ObjectiveValueConstructor(binary_list_to_int, 2)
+f = ObjectiveValueConstructorFromFunction(2, binary_list_to_int)
 population = [Individual([1, 1, 0,  0, 1, 0, 0, 0], 8), Individual([1, 0, 0,  0, 1, 0, 0, 0], 8), Individual([1, 1, 0,  1, 1, 0, 0, 1], 8), Individual([0, 1, 1,  0, 0, 0, 0, 1], 8)]
 nsga = NSGA_II(f)
 ordered = nsga.non_dominated_sorting(population)
@@ -48,3 +48,14 @@ for rank in ordered:
 print(nsga.crowding_distance(population))
 
 print(nsga.mutation(population[0]))
+print("****** MLOTZ**********")
+mlotz_const = mLOTZConstructor(4, 8)
+for x in population:
+    print(mlotz_const(x))
+nsga2 = NSGA_II(mlotz_const)
+ordered = nsga2.non_dominated_sorting(population)
+for rank in ordered:
+    print([obj for obj in rank])
+
+
+print(nsga2.crowding_distance(population))
