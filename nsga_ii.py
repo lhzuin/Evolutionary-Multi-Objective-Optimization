@@ -2,6 +2,8 @@ from typing import Dict, List
 from objective_value import ObjectiveValue, ObjectiveValueConstructor
 from individual import Individual
 import sys
+import random
+
 
 
 class NSGA_II:
@@ -52,4 +54,16 @@ class NSGA_II:
                 distance_dict[sorted_pop[i]] += (self.f(sorted_pop[i+1])[k] - self.f(sorted_pop[i-1])[k])/(self.f(sorted_pop[n-1])[k] - self.f(sorted_pop[0])[k])
 
         return distance_dict
+    
+    
+    def mutation(self, original: Individual) -> Individual:
+        n = original.n
+        y = Individual(original.x, n) # firstly y is a brute copy of the original 
+        
+        for i in range(n):
+            p = random.random()
+            if p < 1/n:
+                y.x[i] = 0 if y.x[i]== 1 else 1
+                
+        return y  
 

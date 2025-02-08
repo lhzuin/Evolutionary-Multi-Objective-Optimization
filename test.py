@@ -46,3 +46,5 @@ for rank in ordered:
 
 
 print(nsga.crowding_distance(population))
+
+print(nsga.mutation(population[0]))
