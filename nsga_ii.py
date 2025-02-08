@@ -117,9 +117,7 @@ class NSGA_II:
         m = number_objectives
         P_t = self.generate_population(N,n, seed)
         counter = 0
-        n_prime = int(2*n/m)
-        total_pareto_optima = (n_prime + 1) ** (m // 2)
-        
+
         while counter < 9*n**2: 
             
             y_ti = [0]*N #population of the mutated individuals
@@ -177,19 +175,26 @@ class NSGA_II:
             # Now update the new population with exactly N individuals
             P_t = selected
             
-            
+            if self.population_covers_pareto_front(P_t, m, n):
+                break
             counter += 1
-                
-            
-            
-            
-            
-            
-                    
-                
-            
-                
-            
+
+    def population_covers_pareto_front(self, population, m, n):
+        # Compute chunk length and total number of Pareto optima
+        n_prime = int(2 * n / m)
+        total_pareto_optima = (n_prime + 1) ** (m // 2)
+
+        # Check the count of unique Pareto optimal objective values in the population.
+        population_pareto_values = set()
+        for individual in population:
+            obj_val = tuple(self.f(individual).value())
+            # Check if every chunk is of the form (i, n_prime - i)
+            is_pareto = True
+            for k in range(m // 2):
+                if obj_val[2*k] + obj_val[2*k + 1] != n_prime:
+                    is_pareto = False
+                    break
+            if is_pareto:
+                population_pareto_values.add(obj_val)
         
-        
-        
+        return len(population_pareto_values) == total_pareto_optima
