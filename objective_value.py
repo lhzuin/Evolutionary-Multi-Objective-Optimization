@@ -1,15 +1,18 @@
 from individual import Individual
+from typing import Iterable
+from abc import ABC, abstractmethod
 
 
 class ObjectiveValue:
-    def __init__(self, f, m: int, x:Individual):
+    _value: Iterable
+    def __init__(self, m: int, x:Individual, val: Iterable):
         """
+        Associates an f(x) to each x
         f should be callable function of type Indiviual -> List[Float]
         """
-        self.f = f
         self.m = m
         self.x = x
-        self._value = self.f(x)
+        self._value = val
         assert(len(self._value) == m)
     
     def value(self):
@@ -17,7 +20,7 @@ class ObjectiveValue:
 
     def fk(self, k) -> float:
         if k > self.m-1:
-            raise ValueError("Fizemos merda em fk") 
+            raise ValueError("K shouldn't be greater or equal to m") 
         return self._value[k]
     
     def __iter__(self):
@@ -46,7 +49,7 @@ class ObjectiveValue:
         Returns True if u strictly dominates v
         """
         if u.m != v.m:
-            raise ValueError("Fizemos merda em strongly")
+            raise ValueError("U and V should have the same m so as to calculate the strictly dominance")
         
         for i in range(u.m):
             if not u.fk(i) > v.fk(i):
@@ -56,19 +59,36 @@ class ObjectiveValue:
     @staticmethod
     def weakly_dominates(u: "ObjectiveValue", v: "ObjectiveValue"):
         if u.m != v.m:
-            raise ValueError("Fizemos weakly merda")
+            raise ValueError("U and V should have the same m so as to calculate the weakly dominance")
         for i in range(u.m):
             if not u.fk(i) >= v.fk(i):
                 return False
         return True
 
-    
-class ObjectiveValueConstructor:
-    def __init__(self, f, m):
-        self.f = f
+
+class ObjectiveValueConstructor(ABC):
+    """
+    Acts as a function x -> f(x), constructing an instance of Objective Value
+    """
+    def __init__(self, m):
         self.m = m
+    
+    @abstractmethod
     def create_objective_value(self, x:Individual)->ObjectiveValue:
-        return ObjectiveValue(self.f, self.m, x)
+        pass
+    
     def __call__(self, x: Individual) -> ObjectiveValue:
         return self.create_objective_value(x)
 
+
+class ObjectiveValueConstructorFromFunction(ObjectiveValueConstructor):
+    def __init__(self, m, f):
+        self.f = f
+        super().__init__(m)
+    
+    def create_objective_value(self, x:Individual)->ObjectiveValue:
+        it = self.f(x)
+        return ObjectiveValue(self.m, x, it)
+    
+
+    

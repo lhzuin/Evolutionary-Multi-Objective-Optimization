@@ -1,7 +1,6 @@
 from typing import Dict, List
 from objective_value import ObjectiveValue, ObjectiveValueConstructor
 from individual import Individual
-import sys
 import random
 
 
@@ -51,7 +50,10 @@ class NSGA_II:
             distances[0] = distances[n-1]  = inf 
             distance_dict[sorted_pop[0]] = distance_dict[sorted_pop[n-1]] = inf
             for i in range(1, n-1):
-                distance_dict[sorted_pop[i]] += (self.f(sorted_pop[i+1])[k] - self.f(sorted_pop[i-1])[k])/(self.f(sorted_pop[n-1])[k] - self.f(sorted_pop[0])[k])
+                if (self.f(sorted_pop[n-1])[k] == self.f(sorted_pop[0])[k]) or (distance_dict[sorted_pop[i]]==inf):
+                    distance_dict[sorted_pop[i]] = inf
+                else:
+                    distance_dict[sorted_pop[i]] += (self.f(sorted_pop[i+1])[k] - self.f(sorted_pop[i-1])[k])/(self.f(sorted_pop[n-1])[k] - self.f(sorted_pop[0])[k])
 
         return distance_dict
     
@@ -66,4 +68,5 @@ class NSGA_II:
                 y.x[i] = 0 if y.x[i]== 1 else 1
                 
         return y  
+
 
