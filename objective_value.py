@@ -89,6 +89,3 @@ class ObjectiveValueConstructorFromFunction(ObjectiveValueConstructor):
     def create_objective_value(self, x:Individual)->ObjectiveValue:
         it = self.f(x)
         return ObjectiveValue(self.m, x, it)
-    
-
-    

@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 from objective_value import ObjectiveValue, ObjectiveValueConstructor
@@ -71,9 +71,9 @@ class NSGA_II:
         n = original.n
         y = Individual(original.x, n)  # Copy of the original
 
-        if seed is not None:
-            random.seed(seed)
-            np.random.seed(seed)
+        #if seed is not None:
+        #random.seed(seed)
+        #np.random.seed(seed)
 
         # Generate mutation probabilities for all bits at once
         mutation_probs = np.random.rand(n)
@@ -83,7 +83,7 @@ class NSGA_II:
 
         return y
     
-
+    @staticmethod
     def generate_population(N:int, n:int, seed: Optional[int] = None) -> List[Individual]:
         """
         Generates a population of N individuals with n-bit sequences,
@@ -111,7 +111,7 @@ class NSGA_II:
         return population
     
     # the NSGA_II algorithm itself
-    def run(self, population_size: int, problem_size: int, number_objectives: int, seed: Optional[int] = None) -> List[Individual]:
+    def run(self, population_size: int, problem_size: int, number_objectives: int, seed: Optional[int] = None) -> Tuple[int, List['Individual']]:
         N = population_size
         n = problem_size
         m = number_objectives
@@ -174,12 +174,13 @@ class NSGA_II:
                 
             # Now update the new population with exactly N individuals
             P_t = selected
-            
-            if self.population_covers_pareto_front(P_t, m, n):
-                break
+            ratio = self.population_covers_pareto_front(P_t, m, n)
             counter += 1
+            if (ratio >= 0.999):
+                break
+        return counter, P_t
 
-    def population_covers_pareto_front(self, population, m, n):
+    def population_covers_pareto_front(self, population, m, n) -> float:
         # Compute chunk length and total number of Pareto optima
         n_prime = int(2 * n / m)
         total_pareto_optima = (n_prime + 1) ** (m // 2)
@@ -197,4 +198,4 @@ class NSGA_II:
             if is_pareto:
                 population_pareto_values.add(obj_val)
         
-        return len(population_pareto_values) == total_pareto_optima
+        return len(population_pareto_values)/total_pareto_optima
