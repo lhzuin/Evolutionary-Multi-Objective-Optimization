@@ -8,8 +8,28 @@ import random
 
 
 class NSGA_II:
-    def __init__(self, f: ObjectiveValueConstructor):
+    def __init__(self, f: ObjectiveValueConstructor, seed: Optional[int] = None) -> None:
         self.f = f
+        self._seed = None
+        if seed:
+            self.update_seed(seed)
+
+    def update_seed(self, seed: int) -> None:
+        """
+        Update the random seed if the provided seed differs from the current seed.
+        
+        This method initializes (or re-initializes) the random number generators for both Python's built-in random module 
+        and NumPy's random generator. This ensures that the results of stochastic operations (such as mutation or 
+        population initialization) are reproducible. If the provided seed is None or the same as the current seed, 
+        no update is performed.
+        
+        Parameters:
+            seed (int): The new seed value to be set.
+        """
+        if (seed is not None) and (seed != self._seed):
+            self._seed = seed
+            random.seed(seed)
+            np.random.seed(seed)
     
     # non dominated sorting criterion for breaking ties
     def non_dominated_sorting(self, population: List[Individual]) -> List[List[Individual]]:
@@ -59,21 +79,16 @@ class NSGA_II:
        return distance_dict
     
     
-    #mutation operation used in the NSGA_II
-    def mutation(self, original: Individual, seed: Optional[int] = None) -> Individual:
+    # mutation operation used in the NSGA_II
+    def mutation(self, original: Individual) -> Individual:
         """
         Performs bit-flip mutation on an individual with probability 1/n per bit.
 
         :param original: The original individual to mutate.
-        :param seed: Optional seed for reproducibility.
         :return: A new mutated individual.
         """
         n = original.n
         y = Individual(original.x, n)  # Copy of the original
-
-        #if seed is not None:
-        #random.seed(seed)
-        #np.random.seed(seed)
 
         # Generate mutation probabilities for all bits at once
         mutation_probs = np.random.rand(n)
@@ -83,8 +98,7 @@ class NSGA_II:
 
         return y
     
-    @staticmethod
-    def generate_population(N:int, n:int, seed: Optional[int] = None) -> List[Individual]:
+    def generate_population(self, N:int, n:int, seed: Optional[int] = None) -> List[Individual]:
         """
         Generates a population of N individuals with n-bit sequences,
         using a deterministic random seed for reproducibility.
@@ -92,13 +106,10 @@ class NSGA_II:
         :param N: Number of individuals
         :param n: Length of each individual's bit sequence
         :param seed: Random seed for reproducibility (default: None)
-        :return: Tuple (population, p_vector), where:
-                 - population is a list of N individuals (each a list of n bits)
-                 - p_vector is the list of predefined probabilities
+        :return: List(population), where population is a list of N individuals (each a list of n bits)
         """
-        if seed is not None:
-            random.seed(seed)
-            np.random.seed(seed)  # Set NumPy seed for consistency
+        
+        self.update_seed(seed)
     
         # Generate probability vector using NumPy (faster and cleaner)
         p_vector = np.random.uniform(0, 1, n)
@@ -107,7 +118,6 @@ class NSGA_II:
         population = (np.random.rand(N, n) < p_vector).astype(int).tolist()
         population = [Individual(population[i],n) for i in range(N)]
         
-        #population = [Individual(ind, n) for ind in (np.random.rand(N, n) < p_vector).astype(int)]
         return population
     
     # the NSGA_II algorithm itself
@@ -123,7 +133,7 @@ class NSGA_II:
             y_ti = [0]*N #population of the mutated individuals
             for i in range(N):
                 x_ti = P_t[random.randint(0,N-1)]
-                y_ti[i] = self.mutation(x_ti, seed)
+                y_ti[i] = self.mutation(x_ti)
             Q_t = P_t + y_ti # the union of the original population and its mutated copy
             fronts = self.non_dominated_sorting(Q_t)
             
@@ -180,7 +190,7 @@ class NSGA_II:
                 break
         return counter, P_t
 
-    def population_covers_pareto_front(self, population, m, n) -> float:
+    def population_covers_pareto_front(self, population: List[Individual], m: int, n: int) -> float:
         # Compute chunk length and total number of Pareto optima
         n_prime = int(2 * n / m)
         total_pareto_optima = (n_prime + 1) ** (m // 2)
