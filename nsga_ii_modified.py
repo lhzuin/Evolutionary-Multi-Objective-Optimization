@@ -33,6 +33,7 @@ class NSGA_II_Modified:
         population_covers_pareto_front(population, m, n, cached_obj): Computes the ratio of the Pareto front points covered by 
             the population.
     """
+    name = "Task's 7 modified NSGA-II"
     def __init__(self, f: ObjectiveValueConstructor, seed: Optional[int] = None) -> None:
         self.f = f
         self._seed = None
@@ -323,6 +324,44 @@ class NSGA_II_Modified:
             # Mark this individual as removed.
             front[rem_index] = None
             # For each objective, update the sorted order and positions.
+
+            for k in range(m):
+                order = sorted_orders[k]
+                # Get the position of the removed element in the sorted order.
+                pos_r = positions[rem_index][k]
+                # Remove the removed element from this sorted order.
+                order.pop(pos_r)
+                # Update positions for all elements that came after the removed element.
+                for j in range(pos_r, len(order)):
+                    positions[order[j]][k] = j
+
+                # Determine the affected neighbors: the immediate left and right neighbors.
+                affected_indices = []
+                if pos_r - 1 >= 0:
+                    affected_indices.append(order[pos_r - 1])
+                if pos_r < len(order):
+                    affected_indices.append(order[pos_r])
+
+                # For each affected neighbor, update its contribution for objective k.
+                for idx in affected_indices:
+                    pos_idx = positions[idx][k]
+                    # For boundary elements, the contribution is infinity.
+                    if pos_idx == 0 or pos_idx == len(order) - 1:
+                        new_contrib = float('inf')
+                    else:
+                        left = order[pos_idx - 1]
+                        right = order[pos_idx + 1]
+                        denom = cached_obj[order[-1], k] - cached_obj[order[0], k]
+                        new_contrib = (cached_obj[right, k] - cached_obj[left, k]) / denom if denom != 0 else float('inf')
+                    # Update the per-objective contribution.
+                    contrib[idx, k] = new_contrib
+                    # Recompute the neighbor's total crowding distance across all objectives.
+                    new_total = np.sum(contrib[idx, :])
+                    # Get the uid for this neighbor and update its key in the heap.
+                    uid = index_to_uid[idx]
+                    heap.update_key(uid, new_total)
+
+            """
             for k in range(m):
                 order = sorted_orders[k]
                 if rem_index in order:
@@ -343,7 +382,7 @@ class NSGA_II_Modified:
                     # Update the heap key for this neighbor.
                     uid = index_to_uid[idx]
                     heap.update_key(uid, new_total)
-        
+            """
         # Return all individuals in front that have not been removed.
         return [ind for ind in front if ind is not None]
     

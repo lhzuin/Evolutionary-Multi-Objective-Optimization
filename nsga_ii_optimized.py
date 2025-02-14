@@ -1,6 +1,6 @@
 import numpy as np
 import random
-from objective_value import ObjectiveValue, ObjectiveValueConstructor
+from objective_value import ObjectiveValueConstructor
 from individual import Individual
 from typing import Dict, List, Optional, Tuple
 
@@ -32,6 +32,7 @@ class NSGA_II_Optimized:
         population_covers_pareto_front(population, m, n, cached_obj): Computes the ratio of the Pareto front points covered by 
             the population.
     """
+    name = "Task's 6 original NSGA-II"
     def __init__(self, f: ObjectiveValueConstructor, seed: Optional[int] = None) -> None:
         self.f = f
         self._seed = None

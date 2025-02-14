@@ -23,7 +23,7 @@ def run_nsgaii_experiment(n: int, m: int, runs: int, population_size: int, seed:
         # Instantiate NSGA-II with the proper objective function.
         #nsgaii = NSGA_II(mLOTZConstructor(m, n))
         nsgaii = NSGA_II_Optimized(mLOTZConstructor(m, n), seed=run_seed)
-        nsgaii = NSGA_II_Modified(mLOTZConstructor(m, n), seed=run_seed)
+        #nsgaii = NSGA_II_Modified(mLOTZConstructor(m, n), seed=run_seed)
         start = time.time()
         iterations, final_pop = nsgaii.run(population_size, n, m)
         end = time.time()
