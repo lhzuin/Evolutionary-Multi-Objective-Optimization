@@ -1,10 +1,11 @@
 import numpy as np
 import random
-from objective_value import ObjectiveValue, ObjectiveValueConstructor
-from individual import Individual
 from typing import Dict, List, Optional, Tuple
+from objective_value import ObjectiveValueConstructor
+from individual import Individual
+from binary_heap import BinaryHeap
 
-class NSGA_II_Optimized:
+class NSGA_II_Modified:
     """
     An optimized implementation of the NSGA-II algorithm for multi-objective optimization.
     
@@ -128,6 +129,7 @@ class NSGA_II_Optimized:
                         domination_count[j] -= 1
         return sorted_ranks
 
+    
     def crowding_distance(self, population: List[Individual], cached_obj: Optional[np.ndarray] = None) -> Dict[Individual, float]:
         """
         Compute crowding distances for a given population in a vectorized manner.
@@ -198,6 +200,154 @@ class NSGA_II_Optimized:
         population = [Individual(list(row), n) for row in pop_arr]
         return population
 
+    @staticmethod
+    def compute_crowding_distance(front: List[Individual], obj_values: np.ndarray, sorted_orders: Dict[int, List[int]]) -> np.ndarray:
+        """
+        Compute the crowding distances for a given front in a vectorized manner.
+        
+        Parameters:
+            front (List[Individual]): The list of individuals in the critical front.
+            obj_values (np.ndarray): A NumPy array of shape (N_front, m) containing the objective 
+                                    values for each individual in the front.
+            sorted_orders (Dict[int, List[int]]): A dictionary mapping each objective index (0 <= k < m)
+                                                to a list of indices (into 'front') sorted in ascending 
+                                                order according to the k-th objective value.
+        
+        Returns:
+            np.ndarray: An array of shape (N_front,) where each entry is the computed crowding distance 
+                        for the corresponding individual.
+                        
+        Explanation:
+            For each objective, the boundary individuals (first and last in the sorted order) are assigned 
+            an infinite crowding distance. For interior individuals, the contribution for objective k is computed 
+            as the difference between the objective values of its immediate right and left neighbors (in the sorted order),
+            normalized by the range of values for that objective. The total crowding distance is the sum over all objectives.
+        """
+        N_front = len(front)
+        m = obj_values.shape[1]
+        cd = np.zeros(N_front)
+        
+        for k in range(m):
+            order = sorted_orders[k]  # list of indices sorted by objective k (ascending)
+            # Set boundary individuals to infinite distance.
+            cd[order[0]] = float('inf')
+            cd[order[-1]] = float('inf')
+            
+            # Compute the range (denom) for objective k.
+            denom = obj_values[order[-1], k] - obj_values[order[0], k]
+            if denom == 0:
+                # If no spread exists, assign infinite distance to all interior individuals.
+                cd[order[1:-1]] = float('inf')
+            else:
+                # For interior individuals, compute the normalized difference.
+                interior = order[1:-1]
+                # The left neighbors are all elements except the last two in the sorted order.
+                left = order[:-2]
+                # The right neighbors are all elements except the first two.
+                right = order[2:]
+                diff = obj_values[right, k] - obj_values[left, k]
+                cd[interior] += diff / denom
+        return cd
+    
+    def select_from_critical_front(self, front: List[Individual], num_to_keep: int, cached_obj: Optional[np.ndarray] = None) -> List[Individual]:
+        """
+        Select num_to_keep individuals from the critical front 'front' by repeatedly removing 
+        those with the smallest total crowding distance and updating only the affected individuals 
+        (at most 2 per objective) via a binary heap.
+        
+        The method uses cached objective values if provided; otherwise, it computes them via _compute_objectives.
+        For each objective, the sorted order is computed and each individual's per-objective contribution is determined.
+        The total crowding distance is computed as the sum over all objectives. Then, a binary min-heap is built 
+        keyed on these total crowding distances. Repeatedly, the individual with the smallest total crowding distance 
+        is removed and - for each objective - the sorted order is updated and the per-objective contributions for all 
+        remaining individuals are recomputed. Their new total crowding distances are then updated in the heap via 
+        update_key.
+        
+        Parameters:
+            front (List[Individual]): The list of individuals in the critical front.
+            num_to_keep (int): The number of individuals to retain from this front.
+            cached_obj (Optional[np.ndarray]): A precomputed NumPy array of shape (N_front, m) containing objective
+                                            values for individuals in 'front'. If None, objective values are computed.
+        
+        Returns:
+            List[Individual]: A list of individuals from 'front' that remain after removals.
+        """
+        # Compute objective values for the front if not provided.
+        if cached_obj is None:
+            cached_obj, _ = self._compute_objectives(front)
+        
+        m = self.f.m
+        N_front = len(front)
+        
+        # Build sorted orders (for each objective) and record each individual's position.
+        sorted_orders = {}   # maps objective k to a list of indices (into front) sorted in ascending order.
+        positions = {i: {} for i in range(N_front)}
+        for k in range(m):
+            order = list(np.argsort(cached_obj[:, k]))
+            sorted_orders[k] = order
+            for pos, i in enumerate(order):
+                positions[i][k] = pos
+
+        # Compute per-objective contributions.
+        contrib = np.zeros((N_front, m))
+        for k in range(m):
+            order = sorted_orders[k]
+            contrib[order[0], k] = float('inf')
+            contrib[order[-1], k] = float('inf')
+            denom = cached_obj[order[-1], k] - cached_obj[order[0], k]
+            if denom == 0:
+                for pos in range(1, len(order)-1):
+                    contrib[order[pos], k] = float('inf')
+            else:
+                for pos in range(1, len(order)-1):
+                    i = order[pos]
+                    left = order[pos-1]
+                    right = order[pos+1]
+                    contrib[i, k] = (cached_obj[right, k] - cached_obj[left, k]) / denom
+
+        # Compute total crowding distances.
+        total_cd = np.sum(contrib, axis=1)
+        
+        # Build a binary heap keyed on total crowding distance.
+        heap = BinaryHeap()
+        # Create a mapping from index (into 'front') to the uid returned by the heap.
+        index_to_uid = {}
+        for i in range(N_front):
+            uid = heap.insert(front[i], total_cd[i])
+            index_to_uid[i] = uid
+
+        num_to_remove = N_front - num_to_keep
+        # Remove individuals one by one until only num_to_keep remain.
+        for _ in range(num_to_remove):
+            rem_index, _, _ = heap.extract_min()  # extract_min returns (uid, item, priority)
+            # Mark this individual as removed.
+            front[rem_index] = None
+            # For each objective, update the sorted order and positions.
+            for k in range(m):
+                order = sorted_orders[k]
+                if rem_index in order:
+                    order.remove(rem_index)
+                for pos, idx in enumerate(order):
+                    positions[idx][k] = pos
+                # For every remaining individual in objective k, recompute its contribution.
+                for pos, idx in enumerate(order):
+                    if pos == 0 or pos == len(order) - 1:
+                        new_contrib = float('inf')
+                    else:
+                        left = order[pos - 1]
+                        right = order[pos + 1]
+                        denom = cached_obj[order[-1], k] - cached_obj[order[0], k]
+                        new_contrib = (cached_obj[right, k] - cached_obj[left, k]) / denom if denom != 0 else float('inf')
+                    contrib[idx, k] = new_contrib
+                    new_total = np.sum(contrib[idx, :])
+                    # Update the heap key for this neighbor.
+                    uid = index_to_uid[idx]
+                    heap.update_key(uid, new_total)
+        
+        # Return all individuals in front that have not been removed.
+        return [ind for ind in front if ind is not None]
+    
+    
     def run(self, population_size: int, problem_size: int, number_objectives: int, seed: Optional[int]=None, remove_duplicates: bool = False) -> Tuple[int, List[Individual]]:
         """
         Run NSGA-II until the termination criterion is met or a maximum number of iterations is reached.
@@ -219,7 +369,6 @@ class NSGA_II_Optimized:
                                            as a list of n bits.
 
         """
-
         N = population_size
         n = problem_size
         m = number_objectives
@@ -247,17 +396,7 @@ class NSGA_II_Optimized:
                         # For this front, get indices in Q_t.
                         indices = [Q_t.index(ind) for ind in front]
                         front_obj = cached_obj_Q[indices, :]
-                        cd = self.crowding_distance(front, cached_obj=front_obj)
-                        front_with_distance = [(ind, cd[ind]) for ind in front]
-                        front_with_distance.sort(key=lambda pair: pair[1], reverse=True)
-                        threshold = front_with_distance[remaining_needed - 1][1]
-                        selected_from_front = [pair[0] for pair in front_with_distance if pair[1] > threshold]
-                        tied = [pair[0] for pair in front_with_distance if pair[1] == threshold]
-                        remaining_to_pick = remaining_needed - len(selected_from_front)
-                        if remaining_to_pick > 0:
-                            selected_from_front.extend(random.sample(tied, remaining_to_pick))
-                        else:
-                            selected_from_front = selected_from_front[:remaining_needed]
+                        selected_from_front = self.select_from_critical_front(front, remaining_needed, cached_obj=front_obj)
                     else:
                         selected_from_front = front
                     selected.extend(selected_from_front)
