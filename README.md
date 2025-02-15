@@ -16,12 +16,10 @@ Here's an overview of the key files and their functionalities:
 - **`mlotz.py`**: Extends LOTZ to the multi-objective case, allowing for more than two objectives.
 - **`individual.py`**: Represents an individual in the population, encapsulating its genetic representation and associated objective values.
 - **`objective_value.py`**: Contains classes and methods to evaluate and store objective values for individuals.
-- **`nsga_ii.py`**: Implements the classic NSGA-II algorithm, including selection, crossover, and mutation operators.
 - **`nsga_ii_modified.py`**: Introduces a modified version of NSGA-II with dynamic crowding distance updates upon the removal of individuals.
 - **`nsga_ii_optimized.py`**: Offers an optimized implementation of NSGA-II, focusing on computational efficiency and scalability.
 - **`binary_heap.py`**: Provides a binary heap data structure, utilized for efficient priority queue operations within the algorithms.
-- **`plot_runs.py`**: Contains functions to visualize the performance of algorithms over multiple runs, including Pareto front coverage plots.
-- **`run_nsga_ii.py`**: Serves as the main script to execute the NSGA-II algorithm on specified problems with predefined parameters.
+- **`plot_runs.py`**: Contains functions to visualize the performance of algorithms over multiple runs, including Pareto front coverage plots which are stored in the images folder.
 - **`test.py`**: Includes unit tests to verify the correctness of various components in the codebase.
 
 ## Getting Started
