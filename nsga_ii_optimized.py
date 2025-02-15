@@ -109,7 +109,6 @@ class NSGA_II_Optimized:
         # Count how many individuals dominate each j:
         domination_count = np.sum(dominates, axis=0)  # shape (N,)
         
-        # Iteratively extract fronts:
         sorted_ranks = []
         remaining = set(range(N))
         while remaining:
@@ -175,7 +174,6 @@ class NSGA_II_Optimized:
         :return: A new mutated individual.
         """
         n = original.n
-        # Convert bit list to numpy array (0/1 integers)
         arr = np.array(original.x, dtype=int)
         random_probs = np.random.rand(n)
         flip_mask = random_probs < (1.0 / n)
@@ -245,7 +243,6 @@ class NSGA_II_Optimized:
                 else:
                     remaining_needed = N - len(selected)
                     if len(front) > remaining_needed:
-                        # For this front, get indices in Q_t.
                         indices = [Q_t.index(ind) for ind in front]
                         front_obj = cached_obj_Q[indices, :]
                         cd = self.crowding_distance(front, cached_obj=front_obj)
@@ -300,7 +297,6 @@ class NSGA_II_Optimized:
         population_pareto_values = set()
         for obj_val in obj_list:
             is_pareto = True
-            # Check for each chunk (there are m/2 chunks)
             for k in range(m // 2):
                 if obj_val[2*k] + obj_val[2*k+1] != n_prime:
                     is_pareto = False
