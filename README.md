@@ -92,7 +92,7 @@ To reproduce the results presented in our study:
 
 ## Contributing
 
-Contributions are welcome! If you have suggestions for improvements or new features, feel free to contact the authors @lhzuin and @asclaudino and/or to open an issue/submit a pull request.
+Contributions are welcome! If you have suggestions for improvements or new features, feel free to contact the authors [@lhzuin](https://github.com/lhzuin) and [@asclaudino](https://github.com/asclaudino) and/or to open an issue/submit a pull request.
 
 ## License
 
