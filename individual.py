@@ -1,7 +1,6 @@
 from typing import List
 class Individual:
     def __init__(self, vec: List[bool], n: int):
-        # A list of booleans and its length
         self.x = vec
         assert len(vec) == n
         self.n = n
@@ -27,14 +26,12 @@ class Individual:
             # Create a new Individual with the sliced vector
             return Individual(sub_vec, len(sub_vec))
         elif isinstance(key, int):
-            # Return a single element
             return self.x[key]
         else:
             raise TypeError("Invalid argument type for indexing: must be int or slice.")
         
     
     def __str__(self):
-        # Return a readable string describing this instance
         return f"Individual(vec={self.x}, n={self.n})"
     
     def __repr__(self):

@@ -24,7 +24,6 @@ class ObjectiveValue:
         return self._value[k]
     
     def __iter__(self):
-        # Simply yield each element from self.items
         for i in range(self.m):
             item = self.fk(i)
             yield item
@@ -33,11 +32,9 @@ class ObjectiveValue:
         return self.m
     
     def __str__(self):
-        # Create a nicely formatted string including the list of floats
         return f"ObjectiveValue(value={self.value()})"
     
     def __repr__(self):
-        # This ensures that printing a list of ObjectiveValue objects uses the __str__ representation.
         return self.__str__()
     def __getitem__(self, key):
         # Allow indexing by simply deferring to fk
