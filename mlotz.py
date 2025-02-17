@@ -8,7 +8,6 @@ class mLOTZ:
         self.n = n
         assert n == len(x)
         self.m = m
-        # For convenience, store the underlying bit list.
         self.x = x.x
 
     def __getitem__(self, key):
@@ -20,7 +19,6 @@ class mLOTZ:
         chunk_index = key // 2
         start = chunk_index * n_prime
         stop = (chunk_index + 1) * n_prime
-        # Create an Individual for the chunk.
         chunk_ind = Individual(self.x[start:stop], stop - start)
         lotz = LOTZ(chunk_ind)
         # According to the assignment, for 1-indexed k:

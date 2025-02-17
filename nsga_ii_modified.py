@@ -110,7 +110,6 @@ class NSGA_II_Modified:
         # Count how many individuals dominate each j:
         domination_count = np.sum(dominates, axis=0)  # shape (N,)
         
-        # Iteratively extract fronts:
         sorted_ranks = []
         remaining = set(range(N))
         while remaining:
@@ -130,45 +129,6 @@ class NSGA_II_Modified:
                         domination_count[j] -= 1
         return sorted_ranks
 
-    
-    def crowding_distance(self, population: List[Individual], cached_obj: Optional[np.ndarray] = None) -> Dict[Individual, float]:
-        """
-        Compute crowding distances for a given population in a vectorized manner.
-        
-        Parameters:
-            population (List[Individual]): The list of individuals for which the crowding distance is to be computed.
-            cached_obj (Optional[np.ndarray]): A precomputed NumPy array of shape (N, m) of objective values for the population.
-                                               If not provided, objective values will be computed.
-        
-        Returns:
-            A dictionary mapping each Individual in the population to its computed crowding distance (a float).
-        """
-        N = len(population)
-        m = self.f.m
-        if cached_obj is None:
-            obj_vals, _ = self._compute_objectives(population)
-        else:
-            obj_vals = cached_obj
-        
-        distances = np.zeros(N)
-        for k in range(m):
-            sorted_indices = np.argsort(obj_vals[:, k])
-            distances[sorted_indices[0]] = float('inf')
-            distances[sorted_indices[-1]] = float('inf')
-            denom = obj_vals[sorted_indices[-1], k] - obj_vals[sorted_indices[0], k]
-            if denom == 0:
-                # If no spread, assign infinite distance for interior individuals.
-                distances[sorted_indices[1:-1]] = float('inf')
-            else:
-                # Compute difference between the neighbor values.
-                diff = obj_vals[sorted_indices[2:], k] - obj_vals[sorted_indices[:-2], k]
-                distances[sorted_indices[1:-1]] += diff / denom
-        # Build a dictionary mapping individual to its computed distance.
-        result: dict = {}
-        for idx, ind in enumerate(population):
-            result[ind] = distances[idx]
-        return result
-
     def mutation(self, original: Individual) -> Individual:
         """
         Vectorized bit-flip mutation.
@@ -177,7 +137,6 @@ class NSGA_II_Modified:
         :return: A new mutated individual.
         """
         n = original.n
-        # Convert bit list to numpy array (0/1 integers)
         arr = np.array(original.x, dtype=int)
         random_probs = np.random.rand(n)
         flip_mask = random_probs < (1.0 / n)
@@ -320,7 +279,7 @@ class NSGA_II_Modified:
         num_to_remove = N_front - num_to_keep
         # Remove individuals one by one until only num_to_keep remain.
         for _ in range(num_to_remove):
-            rem_index, _, _ = heap.extract_min()  # extract_min returns (uid, item, priority)
+            rem_index, _, _ = heap.extract_min()
             # Mark this individual as removed.
             front[rem_index] = None
             # For each objective, update the sorted order and positions.
@@ -361,28 +320,6 @@ class NSGA_II_Modified:
                     uid = index_to_uid[idx]
                     heap.update_key(uid, new_total)
 
-            """
-            for k in range(m):
-                order = sorted_orders[k]
-                if rem_index in order:
-                    order.remove(rem_index)
-                for pos, idx in enumerate(order):
-                    positions[idx][k] = pos
-                # For every remaining individual in objective k, recompute its contribution.
-                for pos, idx in enumerate(order):
-                    if pos == 0 or pos == len(order) - 1:
-                        new_contrib = float('inf')
-                    else:
-                        left = order[pos - 1]
-                        right = order[pos + 1]
-                        denom = cached_obj[order[-1], k] - cached_obj[order[0], k]
-                        new_contrib = (cached_obj[right, k] - cached_obj[left, k]) / denom if denom != 0 else float('inf')
-                    contrib[idx, k] = new_contrib
-                    new_total = np.sum(contrib[idx, :])
-                    # Update the heap key for this neighbor.
-                    uid = index_to_uid[idx]
-                    heap.update_key(uid, new_total)
-            """
         # Return all individuals in front that have not been removed.
         return [ind for ind in front if ind is not None]
     
@@ -432,7 +369,6 @@ class NSGA_II_Modified:
                 else:
                     remaining_needed = N - len(selected)
                     if len(front) > remaining_needed:
-                        # For this front, get indices in Q_t.
                         indices = [Q_t.index(ind) for ind in front]
                         front_obj = cached_obj_Q[indices, :]
                         selected_from_front = self.select_from_critical_front(front, remaining_needed, cached_obj=front_obj)
@@ -477,7 +413,6 @@ class NSGA_II_Modified:
         population_pareto_values = set()
         for obj_val in obj_list:
             is_pareto = True
-            # Check for each chunk (there are m/2 chunks)
             for k in range(m // 2):
                 if obj_val[2*k] + obj_val[2*k+1] != n_prime:
                     is_pareto = False
